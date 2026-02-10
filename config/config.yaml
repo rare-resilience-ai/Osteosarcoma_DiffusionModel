@@ -1,0 +1,152 @@
+# Configuration for Osteosarcoma Disease Progression Model
+
+data:
+  gdc_project: "TARGET-OS"
+  data_dir: "./data"
+  raw_dir: "./data/raw"
+  processed_dir: "./data/processed"
+  
+  # Data types to download
+  download:
+    mutations: true
+    rna_seq: true
+    clinical: true
+    copy_number: false  # Optional, set to true if available
+  
+  # Processing parameters
+  min_samples_per_gene: 3  # Minimum samples with mutation to include gene
+  min_var_expression: 0.1  # Minimum variance for expression filtering
+  pathway_database: "msigdb_hallmark"  # Options: hallmark, kegg, reactome, all
+  
+model:
+  # Architecture choice: "diffusion", "cvae", "flow"
+  architecture: "diffusion"
+  
+  # Input dimensions (will be set automatically from data)
+  n_genes: null
+  n_pathways: null
+  
+  # Latent space
+  latent_dim: 128
+  hidden_dims: [256, 512, 256]
+  
+  # GNN parameters
+  gnn:
+    type: "GAT"  # Graph Attention Network
+    num_layers: 3
+    heads: 4
+    dropout: 0.2
+  
+  # Diffusion parameters
+  diffusion:
+    num_steps: 1000
+    beta_schedule: "cosine"  # linear, cosine, sigmoid
+    loss_type: "l2"  # l1, l2, huber
+    
+  # Conditioning
+  conditional: true
+  condition_on:
+    - survival_time
+    - event_occurred
+    - age
+    - stage
+    - metastasis_at_diagnosis
+    
+  # Biological constraints
+  constraints:
+    pathway_coherence_weight: 1.0
+    mutation_expression_weight: 0.5
+    survival_prediction_weight: 0.3
+    gene_network_weight: 0.2
+
+training:
+  batch_size: 16
+  num_epochs: 500
+  learning_rate: 0.0001
+  weight_decay: 0.00001
+  
+  # Early stopping
+  patience: 50
+  min_delta: 0.001
+  
+  # Data augmentation
+  augmentation:
+    mixup_alpha: 0.2
+    pathway_noise: 0.05
+    cross_cancer_pretrain: true
+    pretrain_datasets: ["TCGA-SARC", "TARGET-EWS"]
+  
+  # Validation
+  val_split: 0.2
+  test_split: 0.1
+  random_seed: 42
+  
+  # Checkpointing
+  save_dir: "./results/checkpoints"
+  save_frequency: 10  # epochs
+
+evaluation:
+  # Statistical tests
+  mmd_kernel: "rbf"
+  ks_test_pathways: true
+  
+  # Biological validation
+  check_mutation_cooccurrence: true
+  check_pathway_coherence: true
+  check_driver_mutations: true
+  
+  # Known osteosarcoma biology
+  driver_genes:
+    - TP53
+    - RB1
+    - ATRX
+    - DLG2
+    - PTEN
+  
+  mutually_exclusive_pairs:
+    - [TP53, MDM2]
+  
+  required_correlations:
+    - mutation: TP53
+      pathway: HALLMARK_P53_PATHWAY
+      direction: "negative"
+    - mutation: MYC
+      pathway: HALLMARK_MYC_TARGETS_V1
+      direction: "positive"
+
+generation:
+  num_synthetic_samples: 1000
+  guidance_scale: 7.5
+  sampling_steps: 50
+  
+  # Conditional generation scenarios
+  scenarios:
+    - name: "early_stage_good_prognosis"
+      conditions:
+        survival_time: 2000  # days
+        event_occurred: 0
+        metastasis_at_diagnosis: 0
+    
+    - name: "metastatic_poor_prognosis"
+      conditions:
+        survival_time: 300
+        event_occurred: 1
+        metastasis_at_diagnosis: 1
+    
+    - name: "typical_patient"
+      conditions:
+        survival_time: 800
+        event_occurred: 0
+        metastasis_at_diagnosis: 0
+
+output:
+  results_dir: "./results"
+  figures_dir: "./results/figures"
+  models_dir: "./results/models"
+  synthetic_data_dir: "./results/synthetic"
+  
+  # Export formats
+  export_formats:
+    - csv
+    - h5
+    - pickle

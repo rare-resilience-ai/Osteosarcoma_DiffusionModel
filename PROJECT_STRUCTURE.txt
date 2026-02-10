@@ -1,0 +1,17 @@
+./PROJECT_STRUCTURE.txt
+./QUICKSTART.md
+./README.md
+./config/config.yaml
+./data/gdc_loader.py
+./data/preprocessor.py
+./docs/DEPLOYMENT.md
+./docs/PROJECT_SUMMARY.md
+./main.py
+./models/cvae.py
+./models/diffusion.py
+./notebooks/analysis.ipynb
+./requirements.txt
+./utils/generate.py
+./utils/pathway_features.py
+./utils/train.py
+./utils/validation.py
