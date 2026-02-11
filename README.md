@@ -50,7 +50,7 @@ osteosarcoma_diffusion/
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/osteosarcoma_diffusion.git
+git clone https://github.com/rare-resilience-ai/osteosarcoma_diffusion.git
 cd osteosarcoma_diffusion
 
 # Create virtual environment
@@ -424,9 +424,9 @@ If you use this code, please cite:
 ```bibtex
 @software{osteosarcoma_diffusion,
   title={Biology-Aware Disease Progression Model for Pediatric Osteosarcoma},
-  author={Your Name},
-  year={2024},
-  url={https://github.com/yourusername/osteosarcoma_diffusion}
+  author={Shu Liu},
+  year={2026},
+  url={https://github.com/rare-resilience-ai/osteosarcoma_diffusion}
 }
 ```
 
@@ -452,11 +452,11 @@ MIT License - see LICENSE file for details
 ## 💬 Contact
 
 For questions or issues:
-- GitHub Issues: [github.com/yourusername/osteosarcoma_diffusion/issues](https://github.com/yourusername/osteosarcoma_diffusion/issues)
-- Email: your.email@example.com
+- GitHub Issues: [github.com/rare-resilience-ai/osteosarcoma_diffusion/issues](https://github.com/rare-resilience-ai/osteosarcoma_diffusion/issues)
+- Email: shuliu@rare-resilience-ai.com
 
 ---
 
 **Note**: This is a research prototype. Synthetic patients should NOT be used for clinical decision-making without extensive validation.
 # Osteosarcoma_DiffusionModel
-# Osteosarcoma_DiffusionModel
+
