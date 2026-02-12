@@ -283,11 +283,11 @@ The codebase is ready for:
 For questions, issues, or collaboration:
 
 - **GitHub**: [Repository issues](https://github.com/yourusername/osteosarcoma_diffusion)
-- **Email**: your.email@example.com
+- **Email**: shuliu@rare-resilience-ai.com
 - **Documentation**: See README.md and DEPLOYMENT.md
 
 ---
 
 **Version**: 1.0.0  
-**Last Updated**: January 2024  
-**Status**: Production-Ready Prototype
+**Last Updated**: Febrary 2026  
+**Status**: Prototype
