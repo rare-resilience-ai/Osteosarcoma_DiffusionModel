@@ -157,7 +157,7 @@ model:
 
 - **Documentation**: See `README.md` for detailed guide
 - **Issues**: Check GitHub issues or create new one
-- **Email**: shuliu@rare-resilinece-ai.com
+- **Email**: shuliu@rare-resilience-ai.com
 
 ## Example: Generate Specific Patient Profile
 
