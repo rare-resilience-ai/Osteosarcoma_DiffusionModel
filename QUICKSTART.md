@@ -157,7 +157,7 @@ model:
 
 - **Documentation**: See `README.md` for detailed guide
 - **Issues**: Check GitHub issues or create new one
-- **Email**: your.email@example.com
+- **Email**: shuliu@rare-resilinece-ai.com
 
 ## Example: Generate Specific Patient Profile
 
@@ -209,7 +209,7 @@ Want to skip data download and train on dummy data?
 
 ```python
 # Generate dummy data for testing
-python -c "
+
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -239,7 +239,7 @@ clin = pd.DataFrame({
     'metastasis_at_diagnosis': np.random.randint(0, 2, n_samples)
 })
 clin.to_csv('data/processed/clinical_aligned.csv', index=False)
-"
+
 
 # Train on dummy data
 python main.py --steps train generate validate
