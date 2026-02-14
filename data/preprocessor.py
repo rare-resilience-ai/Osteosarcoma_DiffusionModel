@@ -233,7 +233,14 @@ class OsteosarcomaDataProcessor:
         # Get sample IDs from each dataset
         # Note: mutation_matrix uses Tumor_Sample_Barcode, expression uses submitter_id
         # Need to map between them
-        
+
+        # 1. Standardize Mutation IDs (Keep only the first 3 parts: Project-TSS-Participant)
+        # Example: TARGET-40-0A1234-01A -> TARGET-40-0A1234
+        mutation_matrix.index = mutation_matrix.index.str.rsplit('-', n=2).str[0]
+
+        # 2. Handle duplicates (If a patient has two samples, we'll take the first one)
+        mutation_matrix = mutation_matrix[~mutation_matrix.index.duplicated(keep='first')]
+
         mutation_samples = set(mutation_matrix.index)
         expression_samples = set(expression_matrix.index)
         clinical_samples = set(clinical_df['submitter_id'])
