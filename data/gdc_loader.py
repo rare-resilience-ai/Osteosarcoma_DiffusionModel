@@ -78,7 +78,7 @@ class GDCDataLoader:
         files = self.query_files(
             data_category="Simple Nucleotide Variation",
             data_type="Masked Somatic Mutation",
-            workflow_type="MuTect2 Variant Aggregation and Masking"
+            workflow_type="Aliquot Ensemble Somatic Variant Merging and Masking"
         )
         
         logger.info(f"Found {len(files)} mutation files")
