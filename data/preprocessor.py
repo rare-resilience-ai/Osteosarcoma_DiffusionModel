@@ -123,22 +123,23 @@ class OsteosarcomaDataProcessor:
             
             # Read STAR counts file
             if file_path.suffix == '.gz':
-                counts = pd.read_csv(file_path, sep='\t', compression='gzip')
+                counts = pd.read_csv(file_path, sep='\t', compression='gzip', comment='#')
             else:
-                counts = pd.read_csv(file_path, sep='\t')
+                counts = pd.read_csv(file_path, sep='\t', comment='#')
             
-            # STAR counts format: gene_id, gene_name, gene_type, unstranded, stranded_first, stranded_second, ...
-            # We use 'unstranded' or 'stranded_first' counts
-            
+            # GDC 2.0 column names are usually: 
+            # gene_id, gene_name, gene_type, unstranded, stranded_first, ...
+            # If 'gene_name' is missing, we use 'gene_id'
+            id_col = 'gene_name' if 'gene_name' in counts.columns else 'gene_id'
+
             if 'unstranded' in counts.columns:
                 count_col = 'unstranded'
-            elif 'stranded_first' in counts.columns:
-                count_col = 'stranded_first'
+            elif 'tpm_unstranded' in counts.columns: # Sometimes TPM is preferred
+                count_col = 'tpm_unstranded'
             else:
-                # Try to infer
-                count_col = counts.columns[-1]
-            
-            gene_counts = counts.set_index('gene_name')[count_col]
+                count_col = counts.columns[3] # Fallback to the 4th column (index 3)
+
+            gene_counts = counts.set_index(id_col)[count_col]
             gene_counts.name = row['submitter_id']
             
             expression_data.append(gene_counts)
