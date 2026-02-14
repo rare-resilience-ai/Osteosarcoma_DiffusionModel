@@ -151,11 +151,12 @@ class OsteosarcomaDataProcessor:
         expression_matrix.columns = expression_matrix.columns.str.split('.').str[0]
         
         # Filter low-variance genes
-        gene_vars = expression_matrix.var(axis=0)
-        min_var = self.config['data']['min_var_expression']
-        genes_to_keep = gene_vars[gene_vars > min_var].index
+        gene_variances = expression_matrix.var(axis=0)
+        # Take the top 5000 most informative genes
+        top_genes = gene_variances.sort_values(ascending=False).head(5000).index
+        expression_matrix = expression_matrix[top_genes]
         
-        expression_matrix = expression_matrix[genes_to_keep]
+        logger.info(f"RNA-seq matrix reduced to {expression_matrix.shape[1]} high-variance genes.")
         
         # Log-transform: log2(counts + 1)
         expression_matrix = np.log2(expression_matrix + 1)
@@ -238,7 +239,8 @@ class OsteosarcomaDataProcessor:
 
         # 1. Standardize Mutation IDs (Keep only the first 3 parts: Project-TSS-Participant)
         # Example: TARGET-40-0A1234-01A -> TARGET-40-0A1234
-        mutation_matrix.index = mutation_matrix.index.str.rsplit('-', n=2).str[0]
+        # This is more robust for TARGET/TCGA barcodes
+        mutation_matrix.index = mutation_matrix.index.map(lambda x: "-".join(x.split("-")[:3]))
 
         # 2. Handle duplicates (If a patient has two samples, we'll take the first one)
         mutation_matrix = mutation_matrix[~mutation_matrix.index.duplicated(keep='first')]
