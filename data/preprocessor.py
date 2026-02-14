@@ -178,13 +178,19 @@ class OsteosarcomaDataProcessor:
         
         clinical_path = self.raw_dir / "clinical.csv"
         clinical_df = pd.read_csv(clinical_path)
-        
-        # Create survival outcomes
+
+        # Standardize column names (GDC API vs Portal CSVs vary)
+        clinical_df.columns = [c.lower() for c in clinical_df.columns]
+
+        # Fix Vital Status: TARGET data often uses 'Dead' or 'Alive'
+        # We make it case-insensitive to be safe
+        clinical_df['vital_status_clean'] = clinical_df['vital_status'].fillna('Unknown').str.capitalize()
+        clinical_df['event_occurred'] = (clinical_df['vital_status_clean'] == 'Dead').astype(int)
+
+        # Survival calculation: days_to_death if dead, else days_to_last_follow_up
         clinical_df['survival_days'] = clinical_df['days_to_death'].fillna(
             clinical_df['days_to_last_follow_up']
         )
-        
-        clinical_df['event_occurred'] = (clinical_df['vital_status'] == 'Dead').astype(int)
         
         # Extract metastasis at diagnosis (from tumor stage)
         def has_metastasis(stage):
@@ -199,14 +205,10 @@ class OsteosarcomaDataProcessor:
         # Encode age in years
         clinical_df['age_years'] = clinical_df['age_at_diagnosis'] / 365.25
         
-        # Select key features
-        features = [
-            'submitter_id', 'case_id', 'age_years', 'gender', 'race',
-            'tumor_stage', 'primary_diagnosis', 'site_of_resection',
-            'survival_days', 'event_occurred', 'metastasis_at_diagnosis', 'vital_status'
-        ]
-        
-        clinical_processed = clinical_df[features].copy()
+        # SELECT AND MAP IDs
+        # Ensure we use 'submitter_id' as the linking key
+        features = ['submitter_id', 'survival_days', 'event_occurred', 'age_years', 'gender']
+        clinical_processed = clinical_df[features].dropna(subset=['survival_days']).copy()
         
         logger.info(f"Clinical data shape: {clinical_processed.shape}")
         logger.info(f"Events: {clinical_processed['event_occurred'].sum()}/{len(clinical_processed)}")
