@@ -183,42 +183,49 @@ class OsteosarcomaDataProcessor:
         # Standardize column names (GDC API vs Portal CSVs vary)
         clinical_df.columns = [c.lower() for c in clinical_df.columns]
 
-        # Fix Vital Status: TARGET data often uses 'Dead' or 'Alive'
-        # We make it case-insensitive to be safe
+        # ---  FORCE NUMERIC CONVERSION ---
+        # GDC often puts 'not reported' or '--' in these columns. 
+      
+        clinical_df['days_to_death'] = pd.to_numeric(clinical_df['days_to_death'], errors='coerce')
+        clinical_df['days_to_last_follow_up'] = pd.to_numeric(clinical_df['days_to_last_follow_up'], errors='coerce')
+        clinical_df['age_at_diagnosis'] = pd.to_numeric(clinical_df['age_at_diagnosis'], errors='coerce')
+
+        # Fix Vital Status
         clinical_df['vital_status_clean'] = clinical_df['vital_status'].fillna('Unknown').str.capitalize()
         clinical_df['event_occurred'] = (clinical_df['vital_status_clean'] == 'Dead').astype(int)
 
-        # Survival calculation: days_to_death if dead, else days_to_last_follow_up
+        # Survival calculation
         clinical_df['survival_days'] = clinical_df['days_to_death'].fillna(
             clinical_df['days_to_last_follow_up']
         )
         
         # Extract metastasis at diagnosis (from tumor stage)
         def has_metastasis(stage):
-            if pd.isna(stage):
-                return 0
+            if pd.isna(stage): return 0
             stage = str(stage).upper()
-            # Stage IV or M1 indicates metastasis
             return 1 if ('IV' in stage or 'M1' in stage) else 0
-        
         clinical_df['metastasis_at_diagnosis'] = clinical_df['tumor_stage'].apply(has_metastasis)
-        
-        # Encode age in years
+    
+        # Encode age
         clinical_df['age_years'] = clinical_df['age_at_diagnosis'] / 365.25
-        
+
+        # --- NEW: GENDER ENCODING (Fixes the PyTorch TypeError) ---
+        # PyTorch cannot handle "male"/"female" strings.
+        clinical_df['gender_bin'] = clinical_df['gender'].map({'female': 0, 'male': 1, 'Female': 0, 'Male': 1}).fillna(0)
+
         # SELECT AND MAP IDs
-        # Ensure we use 'submitter_id' as the linking key
-        features = ['submitter_id', 'survival_days', 'event_occurred', 'age_years', 'gender']
+        # Use 'gender_bin' instead of 'gender'
+        features = ['submitter_id', 'survival_days', 'event_occurred', 'age_years', 'gender_bin']
+    
+        # Drop rows where survival_days is NaN (if fallback wasn't used)
         clinical_processed = clinical_df[features].dropna(subset=['survival_days']).copy()
-        
+    
         logger.info(f"Clinical data shape: {clinical_processed.shape}")
         logger.info(f"Events: {clinical_processed['event_occurred'].sum()}/{len(clinical_processed)}")
-        
-        # Save
+    
         output_path = self.processed_dir / "clinical.csv"
         clinical_processed.to_csv(output_path, index=False)
-        logger.info(f"Saved to {output_path}")
-        
+    
         return clinical_processed
     
     def align_datasets(
