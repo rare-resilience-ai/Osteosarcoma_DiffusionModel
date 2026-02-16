@@ -24,6 +24,8 @@ model:
   
   # Input dimensions (will be set automatically from data)
   n_genes: null
+  n_genes_mutation: null      
+  n_genes_expression: null 
   n_pathways: null
   n_conditions: 3
   
