@@ -280,9 +280,9 @@ class BiologyAwareDiffusionModel(nn.Module):
         self.data_dim = mutation_dim + expression_dim + pathway_dim
         
         # Conditional embedding
-        self.condition_embed = ConditionalEmbedding(
-            num_continuous=condition_dim,
-            embedding_dim=config['model']['latent_dim'] // 2
+        self.condition_embed = ConditionEmbedding(
+            condition_dim=condition_dim, # This should be coming from config['model']['n_conditions']
+            embedding_dim=64
         )
         
         # Denoising U-Net
