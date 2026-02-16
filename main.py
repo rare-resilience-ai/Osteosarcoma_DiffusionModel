@@ -119,6 +119,16 @@ def train_model(config, resume=False):
     
     # Prepare data
     train_loader, val_loader, config_updated = prepare_data(config)
+
+    # 2. DYNAMICALLY UPDATE CONFIG 
+    config_updated['model']['n_genes_mutation'] = train_loader.dataset.mutations.shape[1]
+    config_updated['model']['n_genes_expression'] = train_loader.dataset.expression.shape[1]
+    config_updated['model']['n_pathways'] = train_loader.dataset.pathways.shape[1]
+    config_updated['model']['n_conditions'] = train_loader.dataset.conditions.shape[1]
+
+    logger.info(f"Model configured with: Mut={config_updated['model']['n_genes_mutation']}, "
+                f"Expr={config_updated['model']['n_genes_expression']}, "
+                f"Path={config_updated['model']['n_pathways']}")
     
     # Initialize model
     if config_updated['model']['architecture'] == 'diffusion':
