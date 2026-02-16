@@ -25,6 +25,7 @@ model:
   # Input dimensions (will be set automatically from data)
   n_genes: null
   n_pathways: null
+  n_conditionas: 4
   
   # Latent space
   latent_dim: 128
@@ -49,7 +50,7 @@ model:
     - survival_time
     - event_occurred
     - age
-    - stage
+    #- stage
     - metastasis_at_diagnosis
     
   # Biological constraints
@@ -125,12 +126,14 @@ generation:
       conditions:
         survival_time: 2000  # days
         event_occurred: 0
+        age: 12.0
         metastasis_at_diagnosis: 0
     
     - name: "metastatic_poor_prognosis"
       conditions:
         survival_time: 300
         event_occurred: 1
+        age: 17.0
         metastasis_at_diagnosis: 1
     
     - name: "typical_patient"
