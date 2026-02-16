@@ -237,11 +237,15 @@ class DiffusionUNet(nn.Module):
         h = self.bottleneck(h)
         
         # Decoder with skip connections
-        for i, dec_layer in enumerate(self.decoder):
-            # Match with the corresponding skip connection from the encoder
-            skip = skips[-(i + 2)] 
+        skips.pop() 
+        
+        for dec_block in self.decoder:
+            if not skips:
+                break
+            # Get the matching skip from the encoder stack (Last-In, First-Out)
+            skip = skips.pop() 
             h = torch.cat([h, skip], dim=-1)
-            h = F.silu(dec_layer(h))
+            h = dec_block(h) # Note: Activation is already inside _make_block
         
         # Output
         noise_pred = self.output_proj(h)
