@@ -179,6 +179,10 @@ class DiffusionUNet(nn.Module):
         
         # Decoder (upsampling path with skip connections)
         self.decoder = nn.ModuleList()
+
+        # Current dimension is whatever the bottleneck produced
+        curr_dim = hidden_dims[-1]
+        
         # We need to reverse hidden_dims but handle skip connections correctly
         # If hidden_dims is [256, 512, 256], encoder outputs [512, 256]
         for i in range(len(hidden_dims) - 2, -1, -1):
@@ -186,10 +190,10 @@ class DiffusionUNet(nn.Module):
             out_dim = hidden_dims[i]
             # Create the block: current_dim + skip_dim -> out_dim
             self.decoder.append(self._make_block(in_dim + skip_dim, out_dim, dropout))
-            in_dim = out_dim
+            curr_dim = out_dim
         
         # Output projection
-        self.output_proj = nn.Linear(in_dim, data_dim)
+        self.output_proj = nn.Linear(curr_dim, data_dim)
 
     def _make_block(self, in_dim, out_dim, dropout):
         """Helper to create consistent residual-like blocks"""
