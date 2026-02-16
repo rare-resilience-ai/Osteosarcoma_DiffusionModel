@@ -121,17 +121,33 @@ def train_model(config, resume=False):
     train_loader, val_loader, config_updated = prepare_data(config)
 
     # 2. DYNAMICALLY UPDATE CONFIG 
-    # We add an extra '.dataset' to unwrap the Subset object
     base_dataset = train_loader.dataset.dataset
 
     config_updated['model']['n_genes_mutation'] = base_dataset.mutations.shape[1]
     config_updated['model']['n_genes_expression'] = base_dataset.expression.shape[1]
     config_updated['model']['n_pathways'] = base_dataset.pathways.shape[1]
-    config_updated['model']['n_conditions'] = base_dataset.conditions.shape[1]
+
+    # Get the names of the conditions we WANT
+    target_conditions = config['model'].get('condition_on', [])
+
+    if target_conditions:
+        # IMPORTANT: Check if the dataset actually has these columns
+        # This prevents the model from being size 4 if the data is size 3
+        actual_cols = base_dataset.conditions_df.columns.tolist() if hasattr(base_dataset, 'conditions_df') else []
+    
+        if all(c in actual_cols for c in target_conditions):
+            config_updated['model']['n_conditions'] = len(target_conditions)
+        else:
+            # Fallback if config names don't match the CSV columns
+            config_updated['model']['n_conditions'] = base_dataset.conditions.shape[1]
+            logger.warning(f"Config conditions don't match data. Using data shape: {config_updated['model']['n_conditions']}")
+    else:
+        config_updated['model']['n_conditions'] = base_dataset.conditions.shape[1]
 
     logger.info(f"Model configured with: Mut={config_updated['model']['n_genes_mutation']}, "
                 f"Expr={config_updated['model']['n_genes_expression']}, "
-                f"Path={config_updated['model']['n_pathways']}")
+                f"Path={config_updated['model']['n_pathways']}, "
+                f"Cond={config_updated['model']['n_conditions']}") # Added this log!
     
     # Initialize model
     if config_updated['model']['architecture'] == 'diffusion':
