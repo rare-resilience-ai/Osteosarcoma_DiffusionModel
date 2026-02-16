@@ -179,13 +179,27 @@ def generate_synthetic_patients(config):
     from utils.generate import load_trained_model, SyntheticPatientGenerator
     import pandas as pd
     
-    # Load updated config if exists
+    # 1. Load updated config if exists
     updated_config_path = Path('config/config_updated.yaml')
     if updated_config_path.exists():
         with open(updated_config_path) as f:
             config = yaml.safe_load(f)
     
-    # Load model
+    # 2. DYNAMICALLY DETECT CONDITION DIMENSION BEFORE LOADING MODEL
+    # Load the processed conditions to see how many columns there actually are
+    processed_dir = Path(config['data']['processed_dir'])
+    conditions_path = processed_dir / 'clinical_data_cleaned.csv' # Adjust filename if different
+    if conditions_path.exists():
+        temp_df = pd.read_csv(conditions_path)
+        # Drop ID or non-feature columns if your processor leaves them in
+        if 'patient_id' in temp_df.columns:
+            temp_df = temp_df.drop(columns=['patient_id'])
+        
+        actual_n_conditions = temp_df.shape[1]
+        config['model']['n_conditions'] = actual_n_conditions
+        logger.info(f"Detected {actual_n_conditions} clinical conditions. Updating config.")
+
+    # 3. Load model with the corrected config
     checkpoint_path = Path(config['training']['save_dir']) / 'best_model.pt'
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = load_trained_model(checkpoint_path, config, device)
