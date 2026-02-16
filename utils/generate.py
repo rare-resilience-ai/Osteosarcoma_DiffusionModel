@@ -225,9 +225,10 @@ class SyntheticPatientGenerator:
             logger.info(f"Saved pathways to {pathway_path}")
         
         # Save conditions
+        condition_names = self.config['model']['condition_on']
         cond_df = pd.DataFrame(
             synthetic_data['conditions'],
-            columns=['survival_days_norm', 'event_occurred', 'age_years', 'metastasis_at_diagnosis']
+            columns=condition_names
         )
         cond_path = output_dir / f"{prefix}_conditions.csv"
         cond_df.to_csv(cond_path, index=False)
