@@ -171,21 +171,15 @@ class OsteosarcomaDataProcessor:
         return expression_matrix
     
     def process_clinical(self) -> pd.DataFrame:
-        """
-        Process clinical data into structured format
-        """
-        
         logger.info("Processing clinical data...")
-        
+    
         clinical_path = self.raw_dir / "clinical.csv"
         clinical_df = pd.read_csv(clinical_path)
-
-        # Standardize column names (GDC API vs Portal CSVs vary)
         clinical_df.columns = [c.lower() for c in clinical_df.columns]
 
-        # ---  FORCE NUMERIC CONVERSION ---
-        # GDC often puts 'not reported' or '--' in these columns. 
-      
+        # --- FIX 1: FORCE NUMERIC ---
+        # GDC often has '--' or 'not reported'. errors='coerce' turns those to NaN
+        # so that the logic below doesn't treat the whole column as "text"
         clinical_df['days_to_death'] = pd.to_numeric(clinical_df['days_to_death'], errors='coerce')
         clinical_df['days_to_last_follow_up'] = pd.to_numeric(clinical_df['days_to_last_follow_up'], errors='coerce')
         clinical_df['age_at_diagnosis'] = pd.to_numeric(clinical_df['age_at_diagnosis'], errors='coerce')
@@ -198,8 +192,18 @@ class OsteosarcomaDataProcessor:
         clinical_df['survival_days'] = clinical_df['days_to_death'].fillna(
             clinical_df['days_to_last_follow_up']
         )
-        
-        # Extract metastasis at diagnosis (from tumor stage)
+
+        # --- FIX 2: EMERGENCY FALLBACK ---
+        # If survival_days is STILL all NaN, we fill with 0 to prevent a (0, 5) shape
+        if clinical_df['survival_days'].isna().all():
+            logger.warning("No survival days found! Filling with 0 to prevent pipeline crash.")
+            clinical_df['survival_days'] = clinical_df['survival_days'].fillna(0)
+
+        # --- FIX 3: GENDER ENCODING (The PyTorch "Object" Error) ---
+        # We turn 'male'/'female' into 1/0 so PyTorch can process it as a float
+        clinical_df['gender_bin'] = clinical_df['gender'].str.lower().map({'female': 0, 'male': 1}).fillna(0)
+
+        # Extract metastasis
         def has_metastasis(stage):
             if pd.isna(stage): return 0
             stage = str(stage).upper()
@@ -209,15 +213,9 @@ class OsteosarcomaDataProcessor:
         # Encode age
         clinical_df['age_years'] = clinical_df['age_at_diagnosis'] / 365.25
 
-        # --- NEW: GENDER ENCODING (Fixes the PyTorch TypeError) ---
-        # PyTorch cannot handle "male"/"female" strings.
-        clinical_df['gender_bin'] = clinical_df['gender'].map({'female': 0, 'male': 1, 'Female': 0, 'Male': 1}).fillna(0)
-
-        # SELECT AND MAP IDs
-        # Use 'gender_bin' instead of 'gender'
+        # --- FIX 4: FEATURE SELECTION ---
+        # Use 'gender_bin' (numeric) instead of 'gender' (text/object)
         features = ['submitter_id', 'survival_days', 'event_occurred', 'age_years', 'gender_bin']
-    
-        # Drop rows where survival_days is NaN (if fallback wasn't used)
         clinical_processed = clinical_df[features].dropna(subset=['survival_days']).copy()
     
         logger.info(f"Clinical data shape: {clinical_processed.shape}")
