@@ -242,47 +242,27 @@ def load_trained_model(checkpoint_path: Path, config: dict, device: str):
     checkpoint = torch.load(checkpoint_path, map_location=device)
     state_dict = checkpoint['model_state_dict']
 
-    # Detect dimensions from the saved weights
-    # Condition dimension from condition embedding layer
+    # Detect condition dimension from the saved weights
     saved_cond_dim = state_dict['condition_embed.mlp.0.weight'].shape[1]
     logger.info(f"Checkpoint condition dimension: {saved_cond_dim}")
     
-    # Try to get data dimensions from checkpoint metadata
-    if 'model_config' in checkpoint:
-        mutation_dim = checkpoint['model_config']['mutation_dim']
-        expression_dim = checkpoint['model_config']['expression_dim']
-        pathway_dim = checkpoint['model_config']['pathway_dim']
-        logger.info(f"Loaded dimensions from checkpoint metadata")
-    else:
-        # Fallback: infer from denoising network input dimension
-        # The denoising network's first layer input = mutation_dim + expression_dim + pathway_dim
-        try:
-            # This key may vary - adjust based on your model architecture
-            data_dim = state_dict['denoising_net.0.weight'].shape[1] - config['model']['latent_dim']
-            logger.warning(f"Model config not in checkpoint. Inferred total data_dim: {data_dim}")
-            
-            # You'll need to load processed data to split this correctly
-            processed_dir = Path(config['data']['processed_dir'])
-            mutation_matrix = pd.read_csv(processed_dir / 'mutation_matrix_aligned.csv', index_col=0)
-            expression_matrix = pd.read_csv(processed_dir / 'expression_matrix_aligned.csv', index_col=0)
-            pathway_scores = pd.read_csv(processed_dir / 'pathway_scores.csv', index_col=0)
-            
-            mutation_dim = mutation_matrix.shape[1]
-            expression_dim = expression_matrix.shape[1]
-            pathway_dim = pathway_scores.shape[1]
-            
-            logger.info(f"Loaded dimensions from processed data:")
-            logger.info(f"  Mutation: {mutation_dim}, Expression: {expression_dim}, Pathways: {pathway_dim}")
-            
-        except Exception as e:
-            logger.error(f"Could not infer dimensions: {e}")
-            raise ValueError(
-                "Checkpoint missing model_config and cannot infer dimensions. "
-                "Please retrain the model or provide dimensions manually."
-            )
+    # Load dimensions from processed data files
+    logger.info("Loading dimensions from processed data files...")
+    processed_dir = Path(config['data']['processed_dir'])
     
-    logger.info(f"Model dimensions - Mutation: {mutation_dim}, Expression: {expression_dim}, "
-                f"Pathways: {pathway_dim}, Conditions: {saved_cond_dim}")
+    mutation_matrix = pd.read_csv(processed_dir / 'mutation_matrix_aligned.csv', index_col=0)
+    expression_matrix = pd.read_csv(processed_dir / 'expression_matrix_aligned.csv', index_col=0)
+    pathway_scores = pd.read_csv(processed_dir / 'pathway_scores.csv', index_col=0)
+    
+    mutation_dim = mutation_matrix.shape[1]
+    expression_dim = expression_matrix.shape[1]
+    pathway_dim = pathway_scores.shape[1]
+    
+    logger.info(f"Model dimensions:")
+    logger.info(f"  Mutation: {mutation_dim}")
+    logger.info(f"  Expression: {expression_dim}")
+    logger.info(f"  Pathways: {pathway_dim}")
+    logger.info(f"  Conditions: {saved_cond_dim}")
     
     # Initialize model with detected dimensions
     if config['model']['architecture'] == 'diffusion':
@@ -309,6 +289,8 @@ def load_trained_model(checkpoint_path: Path, config: dict, device: str):
     
     # Load weights
     model.load_state_dict(checkpoint['model_state_dict'])
+    model.to(device)
+    model.eval()
     
     logger.info("Model loaded successfully!")
     
