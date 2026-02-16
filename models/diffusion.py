@@ -170,49 +170,26 @@ class DiffusionUNet(nn.Module):
         # Encoder (downsampling path)
         self.encoder = nn.ModuleList()
         in_dim = hidden_dims[0]
-        
         for h_dim in hidden_dims[1:]:
-            self.encoder.append(nn.Sequential(
-                nn.Linear(in_dim, h_dim),
-                nn.GroupNorm(8, h_dim),
-                nn.SiLU(),
-                nn.Dropout(dropout),
-                nn.Linear(h_dim, h_dim),
-                nn.GroupNorm(8, h_dim),
-                nn.SiLU()
-            ))
+            self.encoder.append(self._make_block(in_dim, h_dim, dropout))
             in_dim = h_dim
         
         # Bottleneck
-        self.bottleneck = nn.Sequential(
-            nn.Linear(in_dim, in_dim),
-            nn.GroupNorm(8, in_dim),
-            nn.SiLU(),
-            nn.Dropout(dropout)
-        )
+        self.bottleneck = self._make_block(in_dim, in_dim, dropout)
         
         # Decoder (upsampling path with skip connections)
         self.decoder = nn.ModuleList()
-        encoder_dims = [hidden_dims[0]] + hidden_dims[1:] 
-        
-        # We iterate backwards through the hidden dims
-        for i in range(len(hidden_dims) - 1, 0, -1):
-            out_dim = hidden_dims[i-1]
-            skip_dim = hidden_dims[i-1] # The dimension coming from the encoder skip
-            
-            self.decoder.append(nn.Sequential(
-                nn.Linear(in_dim + skip_dim, out_dim), 
-                nn.GroupNorm(8, out_dim),
-                nn.SiLU(),
-                nn.Dropout(dropout),
-                nn.Linear(out_dim, out_dim),
-                nn.GroupNorm(8, out_dim),
-                nn.SiLU()
-            ))
+        # We need to reverse hidden_dims but handle skip connections correctly
+        # If hidden_dims is [256, 512, 256], encoder outputs [512, 256]
+        for i in range(len(hidden_dims) - 2, -1, -1):
+            skip_dim = hidden_dims[i]
+            out_dim = hidden_dims[i]
+            # The input to the decoder block is current hidden + skip from encoder
+            self.decoder.append(nn.Linear(in_dim + skip_dim, out_dim))
             in_dim = out_dim
         
         # Output projection
-        self.output_proj = nn.Linear(hidden_dims[0], data_dim)
+        self.output_proj = nn.Linear(in_dim, data_dim)
         
     def forward(self, x, t, condition):
         """
@@ -248,9 +225,11 @@ class DiffusionUNet(nn.Module):
         h = self.bottleneck(h)
         
         # Decoder with skip connections
-        for dec_block, skip in zip(self.decoder, reversed(skips[:-1])):
+        for i, dec_layer in enumerate(self.decoder):
+            # Match with the corresponding skip connection from the encoder
+            skip = skips[-(i + 2)] 
             h = torch.cat([h, skip], dim=-1)
-            h = dec_block(h)
+            h = F.silu(dec_layer(h))
         
         # Output
         noise_pred = self.output_proj(h)
