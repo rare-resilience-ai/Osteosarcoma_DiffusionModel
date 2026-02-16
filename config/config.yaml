@@ -25,7 +25,7 @@ model:
   # Input dimensions (will be set automatically from data)
   n_genes: null
   n_pathways: null
-  n_conditionas: 4
+  n_conditions: 3
   
   # Latent space
   latent_dim: 128
