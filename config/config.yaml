@@ -24,9 +24,9 @@ model:
   
   # Input dimensions (will be set automatically from data)
   n_genes: null
-  n_genes_mutation: null      
-  n_genes_expression: null 
-  n_pathways: null
+  n_genes_mutation: 62      
+  n_genes_expression: 5054 
+  n_pathways: 26
   n_conditions: 3
   
   # Latent space
