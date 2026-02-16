@@ -240,8 +240,7 @@ class DiffusionUNet(nn.Module):
         # Bottleneck
         h = self.bottleneck(h)
         
-        # Decoder with skip connections
-        skips.pop() 
+         
         
         for dec_block in self.decoder:
             if not skips:
