@@ -121,10 +121,13 @@ def train_model(config, resume=False):
     train_loader, val_loader, config_updated = prepare_data(config)
 
     # 2. DYNAMICALLY UPDATE CONFIG 
-    config_updated['model']['n_genes_mutation'] = train_loader.dataset.mutations.shape[1]
-    config_updated['model']['n_genes_expression'] = train_loader.dataset.expression.shape[1]
-    config_updated['model']['n_pathways'] = train_loader.dataset.pathways.shape[1]
-    config_updated['model']['n_conditions'] = train_loader.dataset.conditions.shape[1]
+    # We add an extra '.dataset' to unwrap the Subset object
+    base_dataset = train_loader.dataset.dataset
+
+    config_updated['model']['n_genes_mutation'] = base_dataset.mutations.shape[1]
+    config_updated['model']['n_genes_expression'] = base_dataset.expression.shape[1]
+    config_updated['model']['n_pathways'] = base_dataset.pathways.shape[1]
+    config_updated['model']['n_conditions'] = base_dataset.conditions.shape[1]
 
     logger.info(f"Model configured with: Mut={config_updated['model']['n_genes_mutation']}, "
                 f"Expr={config_updated['model']['n_genes_expression']}, "
