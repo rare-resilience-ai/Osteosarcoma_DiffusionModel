@@ -46,12 +46,13 @@ class OsteosarcomaDataset(Dataset):
             .intersection(pathway_scores.index)
         )
         
-        self.mutations = torch.FloatTensor(
-            mutation_matrix.loc[common_idx].values
+        # Ensure all matrices are cast to float32 and values are numeric
+        self.mutations = torch.from_numpy(
+            mutations.values.astype(np.float32)
         )
-        
-        self.expression = torch.FloatTensor(
-            expression_matrix.loc[common_idx].values
+
+        self.expression = torch.from_numpy(
+            expression.values.astype(np.float32)
         )
         
         self.pathways = torch.FloatTensor(
