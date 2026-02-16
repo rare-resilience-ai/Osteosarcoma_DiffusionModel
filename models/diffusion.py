@@ -190,7 +190,19 @@ class DiffusionUNet(nn.Module):
         
         # Output projection
         self.output_proj = nn.Linear(in_dim, data_dim)
-        
+
+    def _make_block(self, in_dim, out_dim, dropout):
+        """Helper to create consistent residual-like blocks"""
+        return nn.Sequential(
+            nn.Linear(in_dim, out_dim),
+            nn.GroupNorm(8, out_dim),
+            nn.SiLU(),
+            nn.Dropout(dropout),
+            nn.Linear(out_dim, out_dim),
+            nn.GroupNorm(8, out_dim),
+            nn.SiLU()
+        )
+    
     def forward(self, x, t, condition):
         """
         Args:
