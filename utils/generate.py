@@ -37,61 +37,61 @@ class SyntheticPatientGenerator:
         self.condition_dim = model.condition_dim
         
     def create_conditions(
-    self,
-    num_samples: int,
-    scenario: Optional[Dict] = None
-) -> torch.Tensor:
-    """
-    Create condition vectors for generation
+        self,
+        num_samples: int,
+        scenario: Optional[Dict] = None
+    ) -> torch.Tensor:
+        """
+        Create condition vectors for generation
     
-    Args:
-        num_samples: Number of samples to generate
-        scenario: Dictionary with condition values
-                 e.g., {'survival_time': 1000, 'event_occurred': 0, ...}
+        Args:
+            num_samples: Number of samples to generate
+            scenario: Dictionary with condition values
+                     e.g., {'survival_time': 1000, 'event_occurred': 0, ...}
     
-    Returns:
-        conditions: (num_samples, condition_dim)
-    """
+        Returns:
+            conditions: (num_samples, condition_dim)
+        """
     
-    if scenario is not None:
-        # Use specified scenario
-        condition_values = []
+        if scenario is not None:
+            # Use specified scenario
+            condition_values = []
         
-        # Build conditions based on what's in the config
-        condition_names = self.config['model']['condition_on']
+            # Build conditions based on what's in the config
+            condition_names = self.config['model']['condition_on']
         
-        for cond_name in condition_names:
-            if cond_name == 'survival_time':
-                # Normalize (assuming mean=800, std=500 from typical data)
-                survival_norm = (scenario.get('survival_time', 800) - 800) / 500
-                condition_values.append(survival_norm)
-            elif cond_name == 'event_occurred':
-                condition_values.append(scenario.get('event_occurred', 0))
-            elif cond_name == 'age':
-                condition_values.append(scenario.get('age', 15.0))
-            elif cond_name == 'metastasis_at_diagnosis':
-                condition_values.append(scenario.get('metastasis_at_diagnosis', 0))
+            for cond_name in condition_names:
+                if cond_name == 'survival_time':
+                    # Normalize (assuming mean=800, std=500 from typical data)
+                    survival_norm = (scenario.get('survival_time', 800) - 800) / 500
+                    condition_values.append(survival_norm)
+                elif cond_name == 'event_occurred':
+                    condition_values.append(scenario.get('event_occurred', 0))
+                elif cond_name == 'age':
+                    condition_values.append(scenario.get('age', 15.0))
+                elif cond_name == 'metastasis_at_diagnosis':
+                    condition_values.append(scenario.get('metastasis_at_diagnosis', 0))
         
-        # Verify we have the right number
-        if len(condition_values) != self.condition_dim:
-            logger.warning(f"Condition mismatch: expected {self.condition_dim}, got {len(condition_values)}")
-            # Pad or truncate to match
-            if len(condition_values) < self.condition_dim:
-                condition_values.extend([0.0] * (self.condition_dim - len(condition_values)))
-            else:
-                condition_values = condition_values[:self.condition_dim]
+            # Verify we have the right number
+            if len(condition_values) != self.condition_dim:
+                logger.warning(f"Condition mismatch: expected {self.condition_dim}, got {len(condition_values)}")
+                # Pad or truncate to match
+                if len(condition_values) < self.condition_dim:
+                    condition_values.extend([0.0] * (self.condition_dim - len(condition_values)))
+                else:
+                    condition_values = condition_values[:self.condition_dim]
         
-        # Repeat for all samples
-        conditions = torch.tensor(
-            [condition_values] * num_samples,
-            dtype=torch.float32,
-            device=self.device
-        )
-    else:
-        # Random conditions
-        conditions = torch.randn(num_samples, self.condition_dim, device=self.device)
+            # Repeat for all samples
+            conditions = torch.tensor(
+                [condition_values] * num_samples,
+                dtype=torch.float32,
+                device=self.device
+            )
+        else:
+            # Random conditions
+            conditions = torch.randn(num_samples, self.condition_dim, device=self.device)
     
-    return conditions
+        return conditions
     
     @torch.no_grad()
     def generate(
