@@ -182,10 +182,10 @@ class DiffusionUNet(nn.Module):
         # We need to reverse hidden_dims but handle skip connections correctly
         # If hidden_dims is [256, 512, 256], encoder outputs [512, 256]
         for i in range(len(hidden_dims) - 2, -1, -1):
-            skip_dim = hidden_dims[i]
+            skip_dim = hidden_dims[i+1] 
             out_dim = hidden_dims[i]
-            # The input to the decoder block is current hidden + skip from encoder
-            self.decoder.append(nn.Linear(in_dim + skip_dim, out_dim))
+            # Create the block: current_dim + skip_dim -> out_dim
+            self.decoder.append(self._make_block(in_dim + skip_dim, out_dim, dropout))
             in_dim = out_dim
         
         # Output projection
