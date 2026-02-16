@@ -189,7 +189,7 @@ class DiffusionUNet(nn.Module):
             skip_dim = hidden_dims[i+1] 
             out_dim = hidden_dims[i]
             # Create the block: current_dim + skip_dim -> out_dim
-            self.decoder.append(self._make_block(in_dim + skip_dim, out_dim, dropout))
+            self.decoder.append(self._make_block(curr_features + skip_dim, out_dim, dropout))
             curr_features = out_dim
         
         # Output projection
