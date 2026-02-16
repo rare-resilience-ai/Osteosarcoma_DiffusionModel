@@ -280,8 +280,8 @@ class BiologyAwareDiffusionModel(nn.Module):
         self.data_dim = mutation_dim + expression_dim + pathway_dim
         
         # Conditional embedding
-        self.condition_embed = ConditionEmbedding(
-            condition_dim=condition_dim, # This should be coming from config['model']['n_conditions']
+        self.condition_embed = ConditionalEmbedding(
+            num_continuous=condition_dim, # This should be coming from config['model']['n_conditions']
             embedding_dim=64
         )
         
