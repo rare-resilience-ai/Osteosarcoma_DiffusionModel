@@ -31,10 +31,10 @@ class SyntheticPatientGenerator:
         self.device = device
         
         # Data dimensions
-        self.mutation_dim = config['model']['n_genes_mutation']
-        self.expression_dim = config['model']['n_genes_expression']
-        self.pathway_dim = config['model']['n_pathways']
-        self.condition_dim = config['model']['n_conditions']
+        self.mutation_dim = model.mutation_dim
+        self.expression_dim = model.expression_dim
+        self.pathway_dim = model.pathway_dim
+        self.condition_dim = model.condition_dim
         
     def create_conditions(
         self,
@@ -230,6 +230,12 @@ def load_trained_model(checkpoint_path: Path, config: dict, device: str):
     logger.info(f"Loading model from {checkpoint_path}")
     
     checkpoint = torch.load(checkpoint_path, map_location=device)
+    state_dict = checkpoint['model_state_dict']
+
+    # Detect actual dimension from the saved weights
+    # This looks at the weight matrix of the condition projection layer
+    saved_cond_dim = state_dict['condition_embed.mlp.0.weight'].shape[1]
+    logger.info(f"Checkpoint condition dimension: {saved_cond_dim}")
     
     # Initialize model
     if config['model']['architecture'] == 'diffusion':
@@ -239,17 +245,16 @@ def load_trained_model(checkpoint_path: Path, config: dict, device: str):
             mutation_dim=config['model']['n_genes_mutation'],
             expression_dim=config['model']['n_genes_expression'],
             pathway_dim=config['model']['n_pathways'],
-            condition_dim=config['model']['n_conditions'],
+            condition_dim=saved_cond_dim, # Use the detected dim
             config=config
         )
     elif config['model']['architecture'] == 'cvae':
         from models.cvae import BiologyConstrainedVAE
-        
         model = BiologyConstrainedVAE(
             mutation_dim=config['model']['n_genes_mutation'],
             expression_dim=config['model']['n_genes_expression'],
             pathway_dim=config['model']['n_pathways'],
-            condition_dim=config['model']['n_conditions'],
+            condition_dim=saved_cond_dim, # Update this line too!
             config=config
         )
     else:
