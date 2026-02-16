@@ -30,54 +30,44 @@ class OsteosarcomaDataset(Dataset):
         clinical_data: pd.DataFrame,
         condition_features: list
     ):
-        """
-        Args:
-            mutation_matrix: (n_samples, n_genes)
-            expression_matrix: (n_samples, n_genes)
-            pathway_scores: (n_samples, n_pathways)
-            clinical_data: Contains survival_days, event_occurred, etc.
-            condition_features: List of column names to use as conditions
-        """
+        # 1. Align all dataframes by index FIRST
+        # Use 'submitter_id' for clinical to match the others
+        clinical_temp = clinical_data.set_index('submitter_id')
         
-        # Align all dataframes by index
         common_idx = (
             mutation_matrix.index
             .intersection(expression_matrix.index)
             .intersection(pathway_scores.index)
+            .intersection(clinical_temp.index)
         )
         
-        # Ensure all matrices are cast to float32 and values are numeric
-        self.mutations = torch.from_numpy(
-            mutations.values.astype(np.float32)
-        )
-
-        self.expression = torch.from_numpy(
-            expression.values.astype(np.float32)
-        )
+        # 2. IMPORTANT: You MUST filter every matrix by common_idx 
+        # otherwise the 'dim 0' (samples) won't match for torch.cat
+        mut_values = mutation_matrix.loc[common_idx].values.astype(np.float32)
+        expr_values = expression_matrix.loc[common_idx].values.astype(np.float32)
+        path_values = pathway_scores.loc[common_idx].values.astype(np.float32)
         
-        self.pathways = torch.FloatTensor(
-            pathway_scores.loc[common_idx].values
-        )
+        # 3. Use the local variables we just created (Fixes NameError)
+        self.mutations = torch.FloatTensor(mut_values)
+        self.expression = torch.FloatTensor(expr_values)
+        self.pathways = torch.FloatTensor(path_values)
         
-        # Combine all features
+        # Combine all features into one large vector for the Diffusion Model
         self.data = torch.cat([self.mutations, self.expression, self.pathways], dim=1)
         
-        # Extract conditions from clinical data
-        clinical_aligned = clinical_data.set_index('submitter_id').loc[common_idx]
+        # 4. Align clinical and extract numeric conditions
+        clinical_aligned = clinical_temp.loc[common_idx]
         
-        conditions = clinical_aligned[condition_features].values
-        
-        # Handle missing values
-        conditions = np.nan_to_num(conditions, nan=0.0)
-        
-        self.conditions = torch.FloatTensor(conditions)
+        # Ensure conditions are float32 (Fixes TypeError)
+        cond_values = clinical_aligned[condition_features].values.astype(np.float32)
+        self.conditions = torch.FloatTensor(np.nan_to_num(cond_values, nan=0.0))
         
         # Store survival for auxiliary loss
-        self.survival_days = torch.FloatTensor(
-            clinical_aligned['survival_days'].fillna(0).values
-        )
+        # Use .astype(np.float32) to ensure compatibility
+        survival_values = clinical_aligned['survival_days'].fillna(0).values.astype(np.float32)
+        self.survival_days = torch.FloatTensor(survival_values)
         
-        logger.info(f"Dataset: {len(self)} samples")
+        logger.info(f"Dataset: {len(common_idx)} samples")
         logger.info(f"Data dim: {self.data.shape[1]}")
         logger.info(f"Condition dim: {self.conditions.shape[1]}")
         
