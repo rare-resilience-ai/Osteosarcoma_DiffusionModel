@@ -193,18 +193,23 @@ class DiffusionUNet(nn.Module):
         
         # Decoder (upsampling path with skip connections)
         self.decoder = nn.ModuleList()
+        encoder_dims = [hidden_dims[0]] + hidden_dims[1:] 
         
-        for h_dim in reversed(hidden_dims[:-1]):
+        # We iterate backwards through the hidden dims
+        for i in range(len(hidden_dims) - 1, 0, -1):
+            out_dim = hidden_dims[i-1]
+            skip_dim = hidden_dims[i-1] # The dimension coming from the encoder skip
+            
             self.decoder.append(nn.Sequential(
-                nn.Linear(in_dim + h_dim, h_dim),  # +h_dim for skip connection
-                nn.GroupNorm(8, h_dim),
+                nn.Linear(in_dim + skip_dim, out_dim), 
+                nn.GroupNorm(8, out_dim),
                 nn.SiLU(),
                 nn.Dropout(dropout),
-                nn.Linear(h_dim, h_dim),
-                nn.GroupNorm(8, h_dim),
+                nn.Linear(out_dim, out_dim),
+                nn.GroupNorm(8, out_dim),
                 nn.SiLU()
             ))
-            in_dim = h_dim
+            in_dim = out_dim
         
         # Output projection
         self.output_proj = nn.Linear(hidden_dims[0], data_dim)
