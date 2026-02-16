@@ -51,7 +51,7 @@ model:
   condition_on:
     - survival_time
     - event_occurred
-    - age
+    #- age
     #- stage
     - metastasis_at_diagnosis
     
