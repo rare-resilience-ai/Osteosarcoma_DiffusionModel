@@ -62,13 +62,13 @@ model:
 
 training:
   batch_size: 16
-  num_epochs: 500
+  num_epochs: 2000
   learning_rate: 0.0001
   weight_decay: 0.00001
   
   # Early stopping
-  patience: 50
-  min_delta: 0.001
+  patience: 100
+  min_delta: 0.0001
   
   # Data augmentation
   augmentation:
